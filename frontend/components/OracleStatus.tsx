@@ -16,7 +16,13 @@ export default function OracleStatus({ projectId }: Props) {
     </div>
   );
 
-  const isCurrent = data?.isCurrent ?? false;
+  if (!data) return (
+    <div style={{ padding: "0.75rem", background: colors.neutral[50], borderRadius: "0.5rem", fontSize: "0.8rem", color: colors.neutral[400] }}>
+      No data
+    </div>
+  );
+
+  const isCurrent = data.isCurrent;
   const bg     = isCurrent ? colors.verified.bg     : colors.suspended.bg;
   const text   = isCurrent ? colors.verified.text   : colors.suspended.text;
   const border = isCurrent ? colors.verified.border : colors.suspended.border;
@@ -36,13 +42,13 @@ export default function OracleStatus({ projectId }: Props) {
         <p style={{ fontWeight: 600, fontSize: "0.8rem", color: text, margin: 0 }}>
           {isCurrent ? "Monitoring Current" : "Monitoring Data Stale"}
         </p>
-        {data?.lastSubmittedAt && (
+        {data.lastSubmittedAt && (
           <p style={{ fontSize: "0.7rem", color: text, margin: "0.1rem 0 0", opacity: 0.8 }}>
             Last update: {new Date(data.lastSubmittedAt).toLocaleDateString()}
             {data.latestScore !== null && ` · Score: ${data.latestScore}/100`}
           </p>
         )}
-        {!data?.lastSubmittedAt && (
+        {!data.lastSubmittedAt && (
           <p style={{ fontSize: "0.7rem", color: text, margin: "0.1rem 0 0", opacity: 0.8 }}>
             No monitoring data submitted yet
           </p>

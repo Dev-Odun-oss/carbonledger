@@ -37,7 +37,7 @@ export default function CreditCard({ listing, onBuy }: Props) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <p style={{ fontSize: "0.75rem", color: colors.neutral[500], marginBottom: "0.25rem" }}>
-            {listing.country} · {listing.vintageYear} Vintage
+            {listing.country ?? "Unknown"} · {listing.vintageYear != null ? `${listing.vintageYear} Vintage` : "Vintage N/A"}
           </p>
           <h3 style={{ fontSize: "1rem", fontWeight: 600, color: colors.neutral[900], margin: 0 }}>
             {listing.projectName || listing.projectId}

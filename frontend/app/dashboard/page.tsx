@@ -10,8 +10,8 @@ export default function DashboardPage() {
   const { data: retirements } = useRetirements(20);
   const { data: listings }   = useListings();
 
-  const totalIssued   = (projects ?? []).reduce((s, p) => s + p.totalCreditsIssued, 0);
-  const totalRetired  = (projects ?? []).reduce((s, p) => s + p.totalCreditsRetired, 0);
+  const totalIssued   = (projects ?? []).reduce((s, p) => s + (p.totalCreditsIssued ?? 0), 0);
+  const totalRetired  = (projects ?? []).reduce((s, p) => s + (p.totalCreditsRetired ?? 0), 0);
   const activeListings = (listings ?? []).filter(l => l.status === "Active").length;
 
   return (
