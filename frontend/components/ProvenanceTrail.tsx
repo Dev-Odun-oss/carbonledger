@@ -12,7 +12,7 @@ interface ProvenanceEvent {
 }
 
 interface Props {
-  events: ProvenanceEvent[];
+  events: ProvenanceEvent[] | null;
 }
 
 const eventConfig: Record<ProvenanceEvent["type"], { icon: string; color: string }> = {
@@ -26,6 +26,14 @@ const eventConfig: Record<ProvenanceEvent["type"], { icon: string; color: string
 };
 
 export default function ProvenanceTrail({ events }: Props) {
+  if (!events || events.length === 0) {
+    return (
+      <p style={{ fontSize: "0.875rem", color: colors.neutral[400], padding: "1rem 0" }}>
+        No provenance events recorded yet.
+      </p>
+    );
+  }
+
   return (
     <div style={{ position: "relative", paddingLeft: "2rem" }}>
       {/* Vertical line */}
