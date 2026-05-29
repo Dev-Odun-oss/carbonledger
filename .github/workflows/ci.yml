@@ -170,6 +170,34 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
+      # ── Rust: cargo audit ────────────────────────────────────────────────────
+      - name: Cache cargo-audit advisory DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/advisory-db
+          key: cargo-advisory-db-${{ hashFiles('contracts/**/Cargo.lock') }}
+          restore-keys: cargo-advisory-db-
+
+      - name: Run cargo audit
+        id: cargo_audit
+        working-directory: contracts
+        # --deny unsound --deny yanked in addition to default --deny vulnerability
+        # Exit code 1 = vulnerabilities found (critical → block); we capture output
+        # for the PR comment and re-exit after posting.
+        run: |
+          cargo install cargo-audit --locked --quiet 2>/dev/null || true
+          cargo audit --deny unsound --deny yanked 2>&1 | tee /tmp/cargo-audit.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Fail on critical findings
+        if: always()
+        run: |
+          if [ "${{ steps.cargo_audit.outputs.exit_code }}" != "0" ]; then
+            echo "::error::cargo audit found critical vulnerabilities"
+            exit 1
+          fi
+
       - name: Cache Cargo
         uses: actions/cache@v4
         with:
@@ -302,7 +330,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "18"
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
@@ -332,7 +360,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "18"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 

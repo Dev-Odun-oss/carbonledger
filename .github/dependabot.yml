@@ -5,21 +5,29 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    security: true
+    auto_merge: true
 
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    security: true
+    auto_merge: true
 
   - package-ecosystem: "cargo"
     directory: "/contracts"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    security: true
+    auto_merge: true
 
   - package-ecosystem: "pip"
     directory: "/oracle"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    security: true
+    auto_merge: true
