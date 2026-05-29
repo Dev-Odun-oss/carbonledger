@@ -44,6 +44,8 @@
 - ✅ **[Setup Checklist](docs/SETUP_CHECKLIST.md)** - Verify your environment
 - 🔧 **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues solved
 - 📋 **[Quick Reference](docs/QUICK_REFERENCE.md)** - One-page command reference
+- 🔑 **[Configuration Guide](docs/configuration.md)** - Every environment variable explained
+- ♻️ **[Credit Lifecycle](docs/carbon-credit-lifecycle.md)** - Actors, contracts, data, and error conditions for each stage
 
 **Run this to verify your setup:**
 ```bash
@@ -527,6 +529,8 @@ Purchased by Corporation → Retired On-Chain (irreversible) →
 Certificate Issued (permanent public URL) →
 ESG Report Filed 
 ```
+
+> For the full lifecycle reference — actors involved, contract functions called, on-chain and off-chain data, error conditions, and a sequence diagram — see **[docs/carbon-credit-lifecycle.md](docs/carbon-credit-lifecycle.md)**.
 
 ---
 
