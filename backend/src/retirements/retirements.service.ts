@@ -18,9 +18,23 @@ export class RetirementsService {
     return r;
   }
 
+  async getCertificate(retirementId: string) {
+    const retirement = await this.findOne(retirementId);
+    
+    return {
+      retirementId: retirement.retirementId,
+      status: retirement.certificateStatus,
+      cid: retirement.certificateCid,
+      url: retirement.certificateUrl,
+      generatedAt: retirement.certificateGeneratedAt,
+      failedAt: retirement.certificateFailedAt,
+      retries: retirement.certificateRetries,
+    };
+  }
+
   async generatePdf(retirementId: string): Promise<Buffer> {
-    // PDF generation is handled client-side via html2canvas + jsPDF
-    // This endpoint returns the retirement data for server-side rendering
+    // PDF generation is handled asynchronously via queue
+    // This endpoint returns the retirement data for reference
     const retirement = await this.findOne(retirementId);
     return Buffer.from(JSON.stringify(retirement));
   }

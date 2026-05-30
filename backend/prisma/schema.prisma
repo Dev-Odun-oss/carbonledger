@@ -51,18 +51,26 @@ model CreditBatch {
 }
 
 model RetirementRecord {
-  id               String   @id @default(cuid())
-  retirementId     String   @unique
-  batchId          String
-  projectId        String
-  amount           Int
-  retiredBy        String
-  beneficiary      String
-  retirementReason String
-  vintageYear      Int
-  serialNumbers    String[]
-  txHash           String
-  retiredAt        DateTime @default(now())
+  id                    String   @id @default(cuid())
+  retirementId          String   @unique
+  batchId               String
+  projectId             String
+  amount                Int
+  retiredBy             String
+  beneficiary           String
+  retirementReason      String
+  vintageYear           Int
+  serialNumbers         String[]
+  txHash                String
+  retiredAt             DateTime @default(now())
+  
+  // Certificate fields
+  certificateStatus     String   @default("pending_certificate")  // pending_certificate | generating | completed | failed
+  certificateCid        String?  // IPFS CID from Pinata
+  certificateUrl        String?  // Public IPFS gateway URL
+  certificateRetries    Int      @default(0)
+  certificateFailedAt   DateTime?
+  certificateGeneratedAt DateTime?
 
   batch   CreditBatch   @relation(fields: [batchId], references: [batchId])
   project CarbonProject @relation(fields: [projectId], references: [projectId])

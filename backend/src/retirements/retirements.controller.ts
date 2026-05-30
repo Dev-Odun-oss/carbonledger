@@ -20,7 +20,12 @@ export class RetirementsController {
 
   @Get("certificate/:id")
   getCertificate(@Param("id") id: string) {
-    return this.retirementsService.findOne(id);
+    return this.retirementsService.getCertificate(id);
+  }
+
+  @Get("certificate-status/:id")
+  getCertificateStatus(@Param("id") id: string) {
+    return this.retirementsService.getCertificate(id);
   }
 
   @Post("generate-pdf")

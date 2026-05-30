@@ -2,10 +2,15 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { QUEUE_NAME, JobType } from './queue.constants';
+import { CertificateProcessor } from '../certificates/certificate.processor';
 
 @Processor(QUEUE_NAME)
 export class QueueProcessor extends WorkerHost {
   private readonly logger = new Logger(QueueProcessor.name);
+
+  constructor(private readonly certificateProcessor: CertificateProcessor) {
+    super();
+  }
 
   async process(job: Job): Promise<unknown> {
     this.logger.log(`Processing job ${job.id} type=${job.name} attempt=${job.attemptsMade + 1}`);
@@ -25,9 +30,10 @@ export class QueueProcessor extends WorkerHost {
   }
 
   private async handleCertificateGeneration(data: Record<string, unknown>) {
-    this.logger.log(`Generating certificate for retirement ${data['retirementId']}`);
-    // TODO: integrate with PDF generation service
-    return { retirementId: data['retirementId'], status: 'generated' };
+    const retirementId = data['retirementId'] as string;
+    this.logger.log(`Generating certificate for retirement ${retirementId}`);
+    await this.certificateProcessor.processCertificateGeneration(retirementId);
+    return { retirementId, status: 'generated' };
   }
 
   private async handleIpfsPinning(data: Record<string, unknown>) {
