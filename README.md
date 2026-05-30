@@ -315,62 +315,260 @@ carbonledger/
 
 ##  Getting Started
 
-### For Contributors
+**Estimated setup time: 25-40 minutes**
 
-**New to the project?** Follow our step-by-step guide:
+Follow these steps to set up CarbonLedger for local development and testing on a clean Ubuntu 22.04 or macOS 14 system.
 
-📖 **[Quick Start Guide](docs/QUICK_START.md)** - Get running in under 30 minutes
+### 1. Prerequisites (5 minutes)
 
-📝 **[Contributing Guide](CONTRIBUTING.md)** - Detailed setup with troubleshooting
+Ensure you have the following installed:
 
-🔧 **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- [Node.js](https://nodejs.org) (version 18+)
+- [Rust](https://rustup.rs) (version 1.74+)
+- [Python](https://python.org) (version 3.10+)
+- [PostgreSQL](https://postgresql.org) (version 14+)
+- [Redis](https://redis.io) (version 6+)
+- [Git](https://git-scm.com)
 
-### Quick Setup
+You can verify your installation with:
+```bash
+./scripts/verify-setup.sh
+```
+
+### 2. Clone and Configure (2 minutes)
 
 ```bash
-# 1. Clone and configure
+# Clone repository
 git clone https://github.com/YOUR_USERNAME/carbonledger.git
 cd carbonledger
+
+# Copy environment file
 cp .env.example .env
 
-# 2. Install Rust toolchain
-rustup target add wasm32-unknown-unknown
-cargo install --locked stellar-cli --version 21.0.0
-
-# 3. Setup database
-createdb carbonledger
-
-# 4. Install dependencies
-cd backend && npm install && npx prisma migrate dev && cd ..
-cd frontend && npm install && cd ..
-cd oracle && pip3 install -r requirements.txt && cd ..
-cd contracts && cargo build --target wasm32-unknown-unknown --release && cd ..
-
-# 5. Run tests
-./scripts/test-all.sh
+# Edit .env and set these minimum values:
+# - DATABASE_URL=postgresql://carbonledger:changeme@localhost:5432/carbonledger
+# - JWT_SECRET=your-random-secret-key (use `openssl rand -hex 32` to generate)
+# - REDIS_PASSWORD=changeme (optional, but recommended)
 ```
 
-### Verify Your Setup
+### 3. Install Rust Toolchain (3 minutes)
 
 ```bash
-# Linux/macOS
-./scripts/verify-setup.sh
+# Add WebAssembly target for Soroban smart contracts
+rustup target add wasm32-unknown-unknown
 
-# Windows
-.\scripts\verify-setup.ps1
+# Install Stellar CLI for contract deployment
+cargo install --locked stellar-cli --version 21.0.0
 ```
 
-### Prerequisites
+### 4. Setup PostgreSQL (3 minutes)
 
-| Tool | Version | Installation |
-|------|---------|--------------|
-| Node.js | 18+ | [nodejs.org](https://nodejs.org) |
-| Rust | 1.74+ | [rustup.rs](https://rustup.rs) |
-| Python | 3.10+ | [python.org](https://python.org) |
-| PostgreSQL | 14+ | [postgresql.org](https://postgresql.org) |
-| Docker | 24+ (optional) | [docker.com](https://docker.com) |
+```bash
+# Start PostgreSQL service if not running
+# macOS: brew services start postgresql@16
+# Linux (Ubuntu): sudo systemctl start postgresql
+
+# Create database and user
+createdb carbonledger
+# Or if you prefer to set up a user and password:
+# sudo -u postgres psql -c "CREATE USER carbonledger WITH PASSWORD 'changeme';"
+# sudo -u postgres psql -c "ALTER USER carbonledger WITH SUPERUSER;"
+# sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE carbonledger TO carbonledger;"
+# Then update .env accordingly
+```
+
+### 5. Setup Redis (2 minutes)
+
+```bash
+# Start Redis service
+# macOS: brew services start redis
+# Linux (Ubuntu): sudo systemctl start redis
+# Alternatively, you can run Redis in the background:
+# redis-server --daemonize yes
+
+# Verify Redis is running
+redis-cli ping
+# Should return: PONG
+```
+
+### 6. Configure Stellar Testnet and Create Funded Account (5 minutes)
+
+```bash
+# Generate a funded testnet account (requires Stellar CLI)
+stellar keys generate deployer --network testnet --fund
+
+# Save the generated secret key securely - you'll need it for deployment
+# Example output:
+#   Secret Key: SDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#   Public Key: GAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Fund your account with testnet XLM (if not already funded by the --fund flag)
+# You can also friendbot: curl https://friendbot.stellar.org/?addr=GAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+### 7. Install Freighter Wallet and Configure for Testnet (3 minutes)
+
+1. Install the [Freighter wallet extension](https://freighter.app) for your browser (Chrome/Firefox).
+2. Create a new wallet or import an existing one.
+3. In Freighter settings, switch to **Testnet** network.
+4. (Optional) Fund your Freighter wallet with testnet XLM using the Stellar Discord faucet or by sending from your deployer account.
+
+### 8. Install Dependencies (7 minutes)
+
+```bash
+# Backend
+cd backend
+npm install
+npx prisma generate
+npx prisma migrate dev
+cd ..
+
+# Frontend
+cd frontend
+npm install
+cd ..
+
+# Oracle (Python)
+cd oracle
+pip3 install -r requirements.txt
+cd ..
+
+# Note: Contracts will be built in the next step
+```
+
+### 9. Build Contracts (2 minutes)
+
+```bash
+cd contracts
+cargo build --target wasm32-unknown-unknown --release
+cd ..
+```
+
+### 10. Deploy Contracts to Testnet (5 minutes)
+
+```bash
+cd contracts
+
+# Replace 'deployer' with the alias you used in step 6, or use the secret key directly
+# Example using the alias:
+stellar contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/carbon_registry.wasm \
+  --source deployer \
+  --network testnet
+
+# Repeat for carbon_credit, carbon_marketplace, and carbon_oracle contracts
+# Save the returned contract IDs to your .env file:
+#   CARBON_REGISTRY_CONTRACT_ID=...
+#   CARBON_CREDIT_CONTRACT_ID=...
+#   CARBON_MARKETPLACE_CONTRACT_ID=...
+#   CARBON_ORACLE_CONTRACT_ID=...
+#   USDC_CONTRACT_ID= (use the testnet USDC contract: GDTTYN6ZEVJZAINM4AA642YOZBTT5DT4JY3UDZVKWYGJEQS6S6J6Y6ZE - see Stellar.toml for the configured value)
+```
+
+> **Note**: The testnet USDC contract address on Stellar testnet is: `GDTTYN6ZEVJZAINM4AA642YOZBTT5DT4JY3UDZVKWYGJEQS6S6J6Y6ZE` (as of the time of writing, but check [Stellar.toml](Stellar.toml) in the repo for the configured value).
+
+### 11. Start Oracle Services (2 minutes to start, then they run in background)
+
+```bash
+# Start verification listener (polls every 6 hours)
+cd oracle
+python3 verification_listener.py &
+# Example output:
+#   [INFO] Verification listener started
+#   [INFO] Listening for new verification requests on blockchain...
+#   [INFO] Next check in: 6 hours
+
+# Start price oracle (runs every 12 hours)
+python3 price_oracle.py &
+# Example output:
+#   [INFO] Price oracle started
+#   [INFO] Fetching benchmark prices from Xpansiv CBL and Toucan Protocol...
+#   [INFO] Next update in: 12 hours
+
+# Start satellite monitor (webhook receiver)
+python3 satellite_monitor.py &
+# Example output:
+#   [INFO] Satellite monitor started
+#   [INFO] Listening for webhooks on port 5001
+#   [INFO] Ready to receive satellite data from Google Earth Engine
+
+cd ..
+# Note: These services run in the background. You can stop them with `kill %1` `kill %2` `kill %3` or by closing the terminal.
+```
+
+### 12. Run Tests (10 minutes)
+
+```bash
+# Run all tests to verify your setup
+./scripts/test-all.sh
+
+# Expected output:
+#   ✓ Carbon Registry Tests passed
+#   ✓ Carbon Credit Tests passed
+#   ✓ Carbon Marketplace Tests passed
+#   ✓ Carbon Oracle Tests passed
+#   ✓ Backend Unit Tests passed
+#   ✓ Frontend Unit Tests passed
+#   All tests passed! ✓
+```
+
+### 13. Start Development Servers (Optional)
+
+```bash
+# Terminal 1: Backend
+cd backend
+npm run start:dev
+# → http://localhost:3001
+
+# Terminal 2: Frontend
+cd frontend
+npm run dev
+# → http://localhost:3000
+
+# Terminal 3: Oracle services (if not already started)
+cd oracle
+python3 verification_listener.py &
+python3 price_oracle.py &
+python3 satellite_monitor.py &
+```
+
+### ✅ Success Criteria
+
+After completing these steps, you should have:
+- A running PostgreSQL database
+- A running Redis instance
+- Deployed contracts on Stellar testnet
+- Configured Freighter wallet connected to testnet
+- Oracle services running in the background
+- All tests passing
+
+You are now ready to contribute to CarbonLedger!
 
 ---
+
+### 🐳 Alternative: Docker Setup
+
+If you prefer Docker (still requires Rust toolchain for contract development):
+
+```bash
+# Copy environment file
+cp .env.example .env
+
+# Start all services (PostgreSQL, Redis, Backend, Frontend, Oracle)
+docker-compose up --build
+
+# Services will be available at:
+# - Frontend: http://localhost:3000
+# - Backend: http://localhost:3001
+# - PostgreSQL: localhost:5432
+# - Redis: localhost:6379
+```
+
+**Note**: You still need to:
+1. Install Rust toolchain (for contract development)
+2. Generate a funded testnet account (step 6 above)
+3. Deploy contracts (step 10 above) using the Stellar CLI
+4. Start oracle services (step 11 above) if not using Docker for them (they are included in docker-compose)
 
 ## 🔗 Contract Deployment
 
