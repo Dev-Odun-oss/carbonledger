@@ -442,8 +442,73 @@ Install [Freighter wallet](https://freighter.app) and switch to **Testnet**.
 
 ## 🐳 Run With Docker
 
+The complete development stack can be started with a single command:
+
 ```bash
 docker-compose up --build
+```
+
+This starts all services:
+- **PostgreSQL** (port 5432) - Database with health checks
+- **Redis** (port 6379) - Cache with Sentinel HA
+- **NestJS Backend** (port 3001) - API server with health checks
+- **Next.js Frontend** (port 3000) - Web application
+- **Oracle Services** (port 5001) - Verification, price, and satellite monitoring
+- **Observability Stack** - Loki, Promtail, and Grafana for logging
+
+### Environment Setup
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+cp .env.example .env
+```
+
+Key variables:
+- `POSTGRES_PASSWORD` - Database password
+- `REDIS_PASSWORD` - Redis password
+- `JWT_SECRET` - Backend JWT secret
+- `STELLAR_NETWORK` - testnet or public
+- Contract IDs for `CARBON_*_CONTRACT_ID`
+
+### Service Dependencies
+
+Services start in order with health checks:
+1. PostgreSQL and Redis start first
+2. Backend waits for database and Redis to be healthy
+3. Frontend waits for backend to be healthy
+4. Oracle services connect to database and blockchain
+
+### Development with Hot Reload
+
+Volume mounts enable hot reload:
+- Backend: `./backend` → `/app` (NestJS watches for changes)
+- Frontend: `./frontend` → `/app` (Next.js dev mode)
+- Oracle: `./oracle` → `/app` (Python auto-reload)
+
+### Viewing Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f oracle_verification
+
+# Grafana dashboards
+# Open http://localhost:3200 (default: admin/admin)
+```
+
+### Stopping Services
+
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
 ```
 
 ---
