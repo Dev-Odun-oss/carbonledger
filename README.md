@@ -31,6 +31,7 @@
 - [Roadmap](#-roadmap)
 - [Changelog](#-changelog)
 - [Contributing](#-contributing)
+- [Security](#-security)
 - [License](#-license)
 
 ---
@@ -624,6 +625,16 @@ git push origin feat/your-feature-name
 ## 📜 Changelog
 
 See [CHANGELOG.md](./CHANGELOG.md) for a full history of changes and releases.
+
+---
+
+## 🔒 Security
+
+We take security seriously. If you discover a vulnerability, please report it responsibly:
+
+- **Do not** open a public GitHub issue
+- **Email** security@carbonledger.io with details
+- See [SECURITY.md](./SECURITY.md) for our full security policy, threat model, and responsible disclosure process
 
 ---
 
