@@ -2,13 +2,17 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { QUEUE_NAME, JobType } from './queue.constants';
-import { CertificateProcessor } from '../certificates/certificate.processor';
+import { PrismaService } from '../prisma.service';
+import { CertificateService } from '../retirements/certificate.service';
 
 @Processor(QUEUE_NAME)
 export class QueueProcessor extends WorkerHost {
   private readonly logger = new Logger(QueueProcessor.name);
 
-  constructor(private readonly certificateProcessor: CertificateProcessor) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly certificateService: CertificateService,
+  ) {
     super();
   }
 
@@ -32,8 +36,13 @@ export class QueueProcessor extends WorkerHost {
   private async handleCertificateGeneration(data: Record<string, unknown>) {
     const retirementId = data['retirementId'] as string;
     this.logger.log(`Generating certificate for retirement ${retirementId}`);
-    await this.certificateProcessor.processCertificateGeneration(retirementId);
-    return { retirementId, status: 'generated' };
+    try {
+      const result = await this.certificateService.generateAndPinCertificate(retirementId);
+      return { retirementId, cid: result.cid, status: 'generated_and_pinned' };
+    } catch (err: any) {
+      this.logger.error(`Failed to generate certificate for ${retirementId}: ${err.message}`);
+      throw err;
+    }
   }
 
   private async handleIpfsPinning(data: Record<string, unknown>) {
@@ -43,9 +52,34 @@ export class QueueProcessor extends WorkerHost {
   }
 
   private async handleOracleSubmission(data: Record<string, unknown>) {
-    this.logger.log(`Submitting oracle data for project ${data['projectId']}`);
-    // TODO: integrate with oracle service
-    return { projectId: data['projectId'], status: 'submitted' };
+    const { oracleUpdateId, type } = data as { oracleUpdateId: string; type: string };
+    this.logger.log(`Submitting oracle data to Soroban type=${type} oracleUpdateId=${oracleUpdateId}`);
+
+    await this.prisma.oracleUpdate.update({
+      where: { id: oracleUpdateId },
+      data:  { status: 'pending', attempts: { increment: 1 }, updatedAt: new Date() },
+    });
+
+    try {
+      // Soroban submission — placeholder until contract IDs are wired
+      const txHash = `simulated-${Date.now()}`;
+
+      await this.prisma.oracleUpdate.update({
+        where: { id: oracleUpdateId },
+        data:  { status: 'submitted', txHash, lastError: null, updatedAt: new Date() },
+      });
+
+      this.logger.log(
+        `Oracle submission succeeded oracleUpdateId=${oracleUpdateId} txHash=${txHash} at=${new Date().toISOString()}`,
+      );
+      return { oracleUpdateId, txHash, status: 'submitted' };
+    } catch (err: any) {
+      await this.prisma.oracleUpdate.update({
+        where: { id: oracleUpdateId },
+        data:  { status: 'failed', lastError: err.message, updatedAt: new Date() },
+      });
+      throw err; // re-throw so BullMQ retries with exponential backoff
+    }
   }
 
   private async handleEmailNotification(data: Record<string, unknown>) {

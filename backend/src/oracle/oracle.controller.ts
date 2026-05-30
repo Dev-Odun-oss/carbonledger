@@ -1,10 +1,15 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from "@nestjs/common";
-import { AuthGuard } from "@nestjs/passport";
-import { OracleService, SubmitMonitoringDto, UpdatePriceDto, FlagProjectDto } from "./oracle.service";
-import { OracleSyncService } from "./oracle-sync.service";
-import { OracleSchedulerService } from "./oracle-scheduler.service";
+import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  OracleService,
+  SubmitMonitoringDto,
+  UpdatePriceDto,
+  FlagProjectDto,
+  HoldPriceUpdateDto,
+} from './oracle.service';
+import { OracleGuard } from './oracle.guard';
+import { Public, Roles } from '../auth/decorators';
 
-@Controller("oracle")
+@Controller('oracle')
 export class OracleController {
   constructor(
     private readonly oracleService: OracleService,
@@ -12,49 +17,60 @@ export class OracleController {
     private readonly oracleSchedulerService: OracleSchedulerService
   ) {}
 
-  @Post("monitoring")
-  @UseGuards(AuthGuard("jwt"))
+  // ── Public status read ───────────────────────────────────────────────────
+
+  @Get('status/:projectId')
+  @Public()
+  getStatus(@Param('projectId') projectId: string) {
+    return this.oracleService.getStatus(projectId);
+  }
+
+  // ── Internal oracle endpoints — authenticated with oracle keypair ─────────
+
+  @Post('ingest/monitoring')
+  @Public()                   // bypass JWT RolesGuard
+  @UseGuards(OracleGuard)     // oracle keypair signature required
   submitMonitoring(@Body() dto: SubmitMonitoringDto) {
     return this.oracleService.submitMonitoring(dto);
   }
 
-  @Post("price")
-  @UseGuards(AuthGuard("jwt"))
+  @Post('ingest/price')
+  @Public()
+  @UseGuards(OracleGuard)
   updatePrice(@Body() dto: UpdatePriceDto) {
-    return { received: true, ...dto };
+    return this.oracleService.submitPrice(dto);
   }
 
-  @Get("status/:projectId")
-  getStatus(@Param("projectId") projectId: string) {
-    return this.oracleService.getStatus(projectId);
-  }
-
-  @Post("flag")
-  @UseGuards(AuthGuard("jwt"))
+  @Post('ingest/flag')
+  @Public()
+  @UseGuards(OracleGuard)
   flagProject(@Body() dto: FlagProjectDto) {
     return this.oracleService.flagProject(dto);
   }
 
-  @Get("sync/state")
-  async getSyncState() {
-    return this.oracleSyncService.getSyncState();
+  // ── Admin: price approval workflow ───────────────────────────────────────
+
+  @Post('price-approvals/hold')
+  @Roles('admin')
+  holdPriceUpdate(@Body() dto: HoldPriceUpdateDto) {
+    return this.oracleService.holdPriceUpdate(dto);
   }
 
-  @Post("sync/trigger")
-  @UseGuards(AuthGuard("jwt"))
-  async triggerSync() {
-    return this.oracleSyncService.triggerManualSync();
+  @Get('price-approvals')
+  @Roles('admin')
+  getPriceApprovals() {
+    return this.oracleService.getPriceApprovals();
   }
 
-  @Get("sync/health")
-  async getSyncHealth() {
-    return this.oracleSchedulerService.getSchedulerHealth();
+  @Post('price-approvals/:id/approve')
+  @Roles('admin')
+  approvePriceUpdate(@Param('id') id: string) {
+    return this.oracleService.approvePriceUpdate(id);
   }
 
-  @Post("sync/reset")
-  @UseGuards(AuthGuard("jwt"))
-  async resetSync() {
-    await this.oracleSyncService.resetSyncState();
-    return { message: "Sync state reset successfully" };
+  @Post('price-approvals/:id/reject')
+  @Roles('admin')
+  rejectPriceUpdate(@Param('id') id: string, @Body('reason') reason?: string) {
+    return this.oracleService.rejectPriceUpdate(id, reason);
   }
 }

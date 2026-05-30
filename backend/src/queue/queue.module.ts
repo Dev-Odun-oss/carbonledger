@@ -6,7 +6,8 @@ import { QueueProcessor } from './queue.processor';
 import { AuthModule } from '../auth/auth.module';
 import { CertificatesModule } from '../certificates/certificates.module';
 import { QUEUE_NAME } from './queue.constants';
-import { CertificateProcessor } from '../certificates/certificate.processor';
+import { PrismaService } from '../prisma.service';
+import { CertificatesModule } from '../retirements/certificates.module';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { CertificateProcessor } from '../certificates/certificate.processor';
     AuthModule,
     CertificatesModule,
   ],
-  providers: [QueueService, QueueProcessor],
+  providers: [QueueService, QueueProcessor, PrismaService],
   controllers: [QueueController],
   exports: [QueueService],
 })
