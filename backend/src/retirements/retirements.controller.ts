@@ -14,7 +14,7 @@ import {
 import { Response } from 'express';
 import { IsString } from 'class-validator';
 import { RetirementsService } from './retirements.service';
-import { ExportRetirementsDto } from './retirements.dto';
+import { ExportRetirementsDto, RetireCreditsDto } from './retirements.dto';
 import { Public, Roles } from '../auth/decorators';
 
 class VerifyCertificateDto {
@@ -34,6 +34,12 @@ export class RetirementsController {
     @Query('limit')  limit?: string,
   ) {
     return this.retirementsService.findAll(cursor, limit ? Number(limit) : 20, req.user.publicKey);
+  }
+
+  @Post()
+  @Roles('corporation', 'admin')
+  retireCredits(@Body() dto: RetireCreditsDto) {
+    return this.retirementsService.retireCredits(dto);
   }
 
   // Fix IDOR: require auth; only the owner or admin may read a specific retirement
