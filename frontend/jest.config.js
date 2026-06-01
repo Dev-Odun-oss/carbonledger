@@ -11,10 +11,9 @@ const config = {
       'ts-jest',
       {
         tsconfig: {
-          jsx: 'react',
+          jsx: 'react-jsx',
           rootDir: '.',
           moduleResolution: 'node',
-          ignoreDeprecations: '6.0',
         },
       },
     ],
