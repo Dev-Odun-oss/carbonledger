@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, Request, Header } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { RegisterProjectDto, UpdateProjectStatusDto, SearchProjectsDto, CreateProjectDto } from './projects.dto';
 import { IsString } from 'class-validator';
@@ -42,6 +42,7 @@ export class ProjectsController {
 
   @Get(':id')
   @Public()
+  @Header('Cache-Control', 'public, max-age=60')
   findOne(@Param('id') id: string) {
     return this.projectsService.findOne(id);
   }

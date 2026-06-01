@@ -90,6 +90,7 @@ class HealthController {
     VerifiersModule,
     AdminModule,
     PublicApiModule,
+    RedisModule,
   ],
   controllers: [HealthController],
   providers: [

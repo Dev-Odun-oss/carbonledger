@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { RegisterProjectDto, UpdateProjectStatusDto, SearchProjectsDto, PaginatedProjectsResponse, ProjectStatus, OracleFreshness, CreateProjectDto } from "./projects.dto";
 import { MailService } from "../mail/mail.service";
@@ -8,10 +8,13 @@ import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
 export class ProjectsService {
+  private readonly logger = new Logger(ProjectsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
     private readonly stateMachine: ProjectStateMachineService,
+    private readonly redisService: RedisService,
   ) {}
 
   async findAll(filters: { methodology?: string; country?: string; vintage?: number; cursor?: string; limit?: number }) {
@@ -150,7 +153,19 @@ export class ProjectsService {
   }
 
   async findOne(projectId: string) {
+    const cacheKey = projectDetailCacheKey(projectId);
+    const cachedProject = await this.redisService.get<any>(cacheKey);
+
+    if (cachedProject) {
+      return cachedProject;
+    }
+
+    this.logger.log(`Project detail cache miss: ${cacheKey}`);
+
     const project = await this.prisma.carbonProject.findUnique({ where: { projectId } });
+    if (!project) throw new NotFoundException(`Project ${projectId} not found`);
+
+    await this.redisService.set(cacheKey, project, PROJECT_DETAIL_CACHE_TTL_SECONDS);
     if (!project) throw new NotFoundException('Project not found');
     return project;
   }
@@ -203,10 +218,12 @@ export class ProjectsService {
       actor,
       dto.reason,
     );
-    return this.prisma.carbonProject.update({
+    const updated = await this.prisma.carbonProject.update({
       where: { projectId },
       data:  { status: dto.status },
     });
+    await this.invalidateProjectCache(projectId);
+    return updated;
   }
 
   async verify(projectId: string, verifierPublicKey: string) {
@@ -232,6 +249,7 @@ export class ProjectsService {
       });
     }
 
+    await this.invalidateProjectCache(projectId);
     return updated;
   }
 
@@ -244,9 +262,11 @@ export class ProjectsService {
       verifierPublicKey,
       reason,
     );
-    return this.prisma.carbonProject.update({
+    const updated = await this.prisma.carbonProject.update({
       where: { projectId },
       data:  { status: 'Rejected' },
     });
+    await this.invalidateProjectCache(projectId);
+    return updated;
   }
 }
