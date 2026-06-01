@@ -33,8 +33,9 @@ export function filtersFromParams(params: URLSearchParams): FilterState {
 }
 
 interface Props {
-  filters:  FilterState;
-  onChange: (filters: FilterState) => void;
+  filters:      FilterState;
+  onChange:     (filters: FilterState) => void;
+  resultCount?: number;
 }
 
 const METHODOLOGIES  = ["", "VCS", "Gold Standard", "ACR", "CAR", "Plan Vivo"];
@@ -53,7 +54,7 @@ const controlStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-export default function MarketplaceFilter({ filters, onChange }: Props) {
+export default function MarketplaceFilter({ filters, onChange, resultCount }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [localSearch, setLocalSearch] = useState(filters.search);
@@ -91,7 +92,7 @@ export default function MarketplaceFilter({ filters, onChange }: Props) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", position: "relative" }}>
       {/* Search Input */}
       <div style={{ position: "relative" }}>
         <input
@@ -213,6 +214,28 @@ export default function MarketplaceFilter({ filters, onChange }: Props) {
           Clear Filters
         </button>
       </div>
+    </fieldset>
+
+      {/* Visually-hidden live region announces result count to screen readers */}
+      {resultCount !== undefined && (
+        <span
+          aria-live="polite"
+          aria-atomic="true"
+          style={{
+            position: "absolute",
+            width: "1px",
+            height: "1px",
+            padding: 0,
+            margin: "-1px",
+            overflow: "hidden",
+            clip: "rect(0,0,0,0)",
+            whiteSpace: "nowrap",
+            border: 0,
+          }}
+        >
+          {resultCount === 1 ? "1 listing found" : `${resultCount} listings found`}
+        </span>
+      )}
     </div>
   );
 }
