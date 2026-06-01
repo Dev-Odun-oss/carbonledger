@@ -150,7 +150,7 @@ export class ProjectsService {
 
   async findOne(projectId: string) {
     const project = await this.prisma.carbonProject.findUnique({ where: { projectId } });
-    if (!project) throw new NotFoundException(`Project ${projectId} not found`);
+    if (!project) throw new NotFoundException('Project not found');
     return project;
   }
 

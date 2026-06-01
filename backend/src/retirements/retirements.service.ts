@@ -44,7 +44,7 @@ export class RetirementsService {
       where: { retirementId },
       include: { project: true, batch: true },
     });
-    if (!r) throw new NotFoundException(`Retirement ${retirementId} not found`);
+    if (!r) throw new NotFoundException('Retirement not found');
     return r;
   }
 
