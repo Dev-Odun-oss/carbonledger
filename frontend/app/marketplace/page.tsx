@@ -120,15 +120,9 @@ function MarketplaceContent() {
           ) : (
             <div className="marketplace-listings" style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1.5rem" }}>
               <style>{`
-                .marketplace-listings {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 0.75rem;
-                  margin-top: 1.5rem;
-                }
                 @media (min-width: 640px) {
                   .marketplace-listings {
-                    display: grid;
+                    display: grid !important;
                     grid-template-columns: repeat(2, 1fr);
                     gap: 1rem;
                   }
